@@ -92,7 +92,11 @@ pub struct WsEndpoint {
     pub handler: Arc<dyn RequestHandlerErased>,
 }
 
-pub fn internal_error_to_resp(ctx: &RequestContext, code: ErrorCode, err0: eyre::Error) -> WsResponseValue {
+pub fn internal_error_to_resp(
+    ctx: &RequestContext,
+    code: ErrorCode,
+    err0: eyre::Error,
+) -> WsResponseValue {
     let log_id = ctx.log_id.to_string();
     let err = WsResponseError {
         method: ctx.method,
@@ -105,7 +109,11 @@ pub fn internal_error_to_resp(ctx: &RequestContext, code: ErrorCode, err0: eyre:
     WsResponseValue::Error(err)
 }
 
-pub fn request_error_to_resp(ctx: &RequestContext, code: ErrorCode, params: impl Into<Value>) -> WsResponseValue {
+pub fn request_error_to_resp(
+    ctx: &RequestContext,
+    code: ErrorCode,
+    params: impl Into<Value>,
+) -> WsResponseValue {
     let log_id = ctx.log_id.to_string();
     let params = params.into();
     let err = WsResponseError {

@@ -1,4 +1,3 @@
-
 use deadpool_postgres::*;
 use eyre::*;
 use postgres_from_row::FromRow;
@@ -10,7 +9,7 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 pub use tokio_postgres::types::ToSql;
-pub use tokio_postgres::{NoTls, Row, ToStatement};
+pub use tokio_postgres::Row;
 mod data_thread;
 mod pooled;
 pub use data_thread::*;
