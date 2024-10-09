@@ -2,7 +2,7 @@ use crate::model::{Field, Type};
 use serde::*;
 
 /// `EndpointSchema` is a struct that represents a single endpoint in the API.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EndpointSchema {
     /// The name of the endpoint (e.g. `UserListSymbols`)
     pub name: String,
@@ -17,18 +17,26 @@ pub struct EndpointSchema {
     pub returns: Vec<Field>,
 
     /// The type of the stream response (if any)
+    #[serde(default)]
     pub stream_response: Option<Type>,
 
     /// A description of the endpoint added by `with_description` method
+    #[serde(default)]
     pub description: String,
 
     /// The JSON schema of the endpoint (`Default::default()`)
+    #[serde(default)]
     pub json_schema: serde_json::Value,
 }
 
 impl EndpointSchema {
     /// Creates a new `EndpointSchema` with the given name, method code, parameters and returns.
-    pub fn new(name: impl Into<String>, code: u32, parameters: Vec<Field>, returns: Vec<Field>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        code: u32,
+        parameters: Vec<Field>,
+        returns: Vec<Field>,
+    ) -> Self {
         Self {
             name: name.into(),
             code,
