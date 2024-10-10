@@ -7,14 +7,14 @@ pub mod types;
 pub mod utils;
 pub mod ws;
 
-mod config;
-mod database;
-mod datatable;
-mod deserializer_wrapper;
-mod error_code;
-mod handler;
-mod listener;
-mod warn;
+pub mod config;
+pub mod database;
+pub mod datatable;
+pub mod deserializer_wrapper;
+pub mod error_code;
+pub mod handler;
+pub mod listener;
+pub mod warn;
 
 pub const DEFAULT_LIMIT: i32 = 20;
 pub const DEFAULT_OFFSET: i32 = 0;
