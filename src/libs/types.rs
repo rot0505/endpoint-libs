@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 #[doc(hidden)]
-pub use alloy_primitives::{Address, B256 as H256, U256};
+pub use alloy::primitives::{Address, B256 as H256, U256};
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
