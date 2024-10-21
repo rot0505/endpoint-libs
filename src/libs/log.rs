@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use std::{fs::OpenOptions, path::PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 
 use eyre::eyre;
+use eyre::WrapErr;
 use serde::{Deserialize, Serialize};
 use tracing::{level_filters::LevelFilter, Level};
 use tracing_subscriber::EnvFilter;
@@ -97,27 +98,29 @@ impl LoggingGuard {
         }
     }
 }
-pub fn setup_logs(log_level: LogLevel, _file: Option<PathBuf>) -> eyre::Result<LoggingGuard> {
+pub fn setup_logs(log_level: LogLevel, file: Option<PathBuf>) -> eyre::Result<LoggingGuard> {
     let filter = build_env_filter(log_level)?;
 
     let fmt = tracing_subscriber::fmt()
         .with_thread_names(true)
         .with_line_number(true)
         .with_env_filter(filter);
-    // let guard =
-    // if let Some(path) = file {
-    //     let file = OpenOptions::new()
-    //         .append(true)
-    //         .open(&path)
-    //         .with_context(|| format!("Failed to open log file: {}", path.display()))?;
-    //     let (non_blocking, guard) = tracing_appender::non_blocking(file);
-    //
-    //     fmt.with_writer(non_blocking).init();
-    //     LoggingGuard::NonBlocking(guard, path)
-    // } else {
+
+    let guard =
+    if let Some(path) = file {
+        let file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(&path)
+            .with_context(|| format!("Failed to open log file: {}", path.display()))?;
+        let (non_blocking, guard) = tracing_appender::non_blocking(file);
+    
+        fmt.with_writer(non_blocking).init();
+        LoggingGuard::NonBlocking(guard, path)
+    } else {
     fmt.with_writer(std::io::stdout).init();
-    let guard = LoggingGuard::StdoutWithPath(_file);
-    // };
+    LoggingGuard::StdoutWithPath(None)
+    };
     log_panics::init();
     Ok(guard)
 }
