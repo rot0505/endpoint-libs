@@ -6,7 +6,11 @@ use eyre::eyre;
 use eyre::WrapErr;
 use serde::{Deserialize, Serialize};
 use tracing::{level_filters::LevelFilter, Level};
+use tracing_subscriber::fmt::layer;
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::Layer;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -101,28 +105,46 @@ impl LoggingGuard {
 pub fn setup_logs(log_level: LogLevel, file: Option<PathBuf>) -> eyre::Result<LoggingGuard> {
     let filter = build_env_filter(log_level)?;
 
-    let fmt = tracing_subscriber::fmt()
+    let stdout_log = layer()
         .with_thread_names(true)
         .with_line_number(true)
-        .with_env_filter(filter);
+        .with_writer(std::io::stdout)
+        .with_filter(filter);
 
-    let guard =
-    if let Some(path) = file {
+    let guard = if let Some(path) = file {
         let file = OpenOptions::new()
             .append(true)
             .create(true)
             .open(&path)
             .with_context(|| format!("Failed to open log file: {}", path.display()))?;
+
         let (non_blocking, guard) = tracing_appender::non_blocking(file);
-    
-        fmt.with_writer(non_blocking).init();
+
+        let file_filter = build_env_filter(log_level)?;
+
+        let file_log = layer()
+            .with_thread_names(true)
+            .with_line_number(true)
+            .with_writer(non_blocking)
+            .with_filter(file_filter);
+
+        // Register both stdout and file layers
+        tracing_subscriber::registry()
+            .with(stdout_log)
+            .with(file_log)
+            .init();
+
         LoggingGuard::NonBlocking(guard, path)
     } else {
-    fmt.with_writer(std::io::stdout).init();
-    LoggingGuard::StdoutWithPath(None)
+        // If no file is provided, just log to stdout
+        tracing_subscriber::registry()
+            .with(stdout_log)
+            .init();
+        LoggingGuard::StdoutWithPath(None)
     };
-    log_panics::init();
-    Ok(guard)
+    
+        log_panics::init();
+        Ok(guard)
 }
 
 #[derive(Clone)]
