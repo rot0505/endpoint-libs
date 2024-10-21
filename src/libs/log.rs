@@ -6,8 +6,8 @@ use eyre::eyre;
 use eyre::WrapErr;
 use serde::{Deserialize, Serialize};
 use tracing::{level_filters::LevelFilter, Level};
-use tracing_subscriber::fmt::layer;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::{self, layer};
+use tracing_subscriber::{registry, EnvFilter};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::Layer;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -102,49 +102,31 @@ impl LoggingGuard {
         }
     }
 }
-pub fn setup_logs(log_level: LogLevel, file: Option<PathBuf>) -> eyre::Result<LoggingGuard> {
+pub fn setup_logs(log_level: LogLevel, log_dir_and_file_prefix: Option<(PathBuf, &str)>) -> eyre::Result<()> {
     let filter = build_env_filter(log_level)?;
 
-    let stdout_log = layer()
+    let stdout_layer: tracing_subscriber::filter::Filtered<fmt::Layer<registry::Registry>, EnvFilter, registry::Registry> = fmt::layer()
+    .with_thread_names(true)
+    .with_line_number(true)
+    .with_filter(filter);
+    
+    if let Some((log_dir, file_prefix)) = log_dir_and_file_prefix {
+        let file_filter = build_env_filter(log_level)?;
+        registry()
+        .with(stdout_layer)
+        .with(fmt::layer()
         .with_thread_names(true)
         .with_line_number(true)
-        .with_writer(std::io::stdout)
-        .with_filter(filter);
-
-    let guard = if let Some(path) = file {
-        let file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(&path)
-            .with_context(|| format!("Failed to open log file: {}", path.display()))?;
-
-        let (non_blocking, guard) = tracing_appender::non_blocking(file);
-
-        let file_filter = build_env_filter(log_level)?;
-
-        let file_log = layer()
-            .with_thread_names(true)
-            .with_line_number(true)
-            .with_writer(non_blocking)
-            .with_filter(file_filter);
-
-        // Register both stdout and file layers
-        tracing_subscriber::registry()
-            .with(stdout_log)
-            .with(file_log)
-            .init();
-
-        LoggingGuard::NonBlocking(guard, path)
+        .with_writer(tracing_appender::rolling::hourly(log_dir, file_prefix))
+        .with_filter(file_filter))
+        .init();
     } else {
-        // If no file is provided, just log to stdout
-        tracing_subscriber::registry()
-            .with(stdout_log)
-            .init();
-        LoggingGuard::StdoutWithPath(None)
-    };
-    
-        log_panics::init();
-        Ok(guard)
+        registry()
+        .with(stdout_layer)
+        .init();
+    }
+
+    Ok(())
 }
 
 #[derive(Clone)]
