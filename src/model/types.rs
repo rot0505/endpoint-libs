@@ -67,7 +67,7 @@ pub enum Type {
     StructRef(String),
     Object,
     DataTable { name: String, fields: Vec<Field> },
-    DataTableIdentifer {name: String, fields: Vec<Field>},
+    DataTableIdentifer {name: String},
     Vec(Box<Type>),
     Unit,
     Optional(Box<Type>),
@@ -102,11 +102,8 @@ impl Type {
     }
 
     /// Creates a new `Type::DataTableIdentifer` with the given name and fields.
-    pub fn datatable_identifer(name: impl Into<String>, fields: Vec<Field>) -> Self {
-        Self::DataTableIdentifer {
-            name: name.into(),
-            fields,
-        }
+    pub fn datatable_identifer(name: impl Into<String>) -> Self {
+        Self::DataTableIdentifer {name: name.into()}
     }
 
     /// Creates a new `Type::Vec` with the given type.
